@@ -1,0 +1,26 @@
+{
+  "name": "stacker-cli",
+  "version": "0.1.0",
+  "description": "The ultra-fast CLI for Stacker",
+  "type": "module",
+  "bin": {
+    "stacker": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "bun ./src/index.ts",
+    "build": "bun build ./src/index.ts --compile --outfile stacker"
+  },
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.2.0",
+    "cac": "^7.0.0",
+    "picocolors": "^1.1.1",
+    "zod": "^4.3.6"
+  }
+}
