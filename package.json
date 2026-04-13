@@ -1,17 +1,33 @@
 {
   "name": "@stacker/cli",
   "version": "0.1.0",
-  "description": "The ultra-fast CLI for Stacker",
+  "description": "The ultra-fast CLI for Stacker — scaffold production-ready projects in one command",
+  "keywords": [
+    "cli",
+    "stacker",
+    "scaffolding",
+    "next.js",
+    "vite",
+    "tanstack",
+    "template",
+    "project-generator"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StackerOSS/CLI.git"
+  },
   "type": "module",
   "bin": {
-    "stacker": "./src/index.ts"
+    "stacker": "src/index.ts"
   },
   "scripts": {
     "start": "bun ./src/index.ts",
-    "build": "bun build ./src/index.ts --compile --outfile stacker"
+    "build": "tsdown --publint"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "publint": "^0.3.18"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -25,6 +41,7 @@
     "create-vite": "^9.0.4",
     "picocolors": "^1.1.1",
     "shadcn-ui": "^0.9.5",
+    "tsdown": "^0.21.7",
     "zod": "^4.3.6"
   }
 }
