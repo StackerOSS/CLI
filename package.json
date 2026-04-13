@@ -1,5 +1,5 @@
 {
-  "name": "stacker-cli",
+  "name": "@stacker/cli",
   "version": "0.1.0",
   "description": "The ultra-fast CLI for Stacker",
   "type": "module",
@@ -10,7 +10,6 @@
     "start": "bun ./src/index.ts",
     "build": "bun build ./src/index.ts --compile --outfile stacker"
   },
-  "private": true,
   "devDependencies": {
     "@types/bun": "latest"
   },
