@@ -17,6 +17,9 @@
     "type": "git",
     "url": "git+https://github.com/StackerOSS/CLI.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "bin": {
     "stacker": "src/index.ts"
