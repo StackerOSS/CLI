@@ -1,6 +1,6 @@
 {
-  "name": "@stacker/cli",
-  "version": "0.1.0",
+  "name": "@stacker-oss/cli",
+  "version": "0.1.1",
   "description": "The ultra-fast CLI for Stacker — scaffold production-ready projects in one command",
   "keywords": [
     "cli",

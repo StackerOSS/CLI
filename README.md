@@ -16,7 +16,7 @@
 The CLI companion to [Stacker](https://stacker.ranveersoni.me) — scaffold a production-ready project
 in one command from a template you built visually in the browser.
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](#)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](#)
 [![Runtime](https://img.shields.io/badge/runtime-bun-orange.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](#)
 
@@ -34,7 +34,7 @@ The CLI takes that ID, fetches your configuration, and runs the right scaffoldin
 in the right order — automatically:
 
 ```
-bunx stacker-cli xCjNK1
+bunx  @stacker-oss/cli xCjNK1
 ```
 
 That one command will:
@@ -54,16 +54,16 @@ No global install needed. Run directly with your package manager:
 
 ```bash
 # bun (recommended)
-bunx stacker-cli <templateId>
+bunx  @stacker-oss/cli <templateId>
 
 # pnpm
-pnpm dlx stacker-cli <templateId>
+pnpm dlx  @stacker-oss/cli <templateId>
 
 # npm
-npx stacker-cli <templateId>
+npx  @stacker-oss/cli <templateId>
 
 # yarn
-yarn dlx stacker-cli <templateId>
+yarn dlx  @stacker-oss/cli <templateId>
 ```
 
 ---
@@ -73,7 +73,7 @@ yarn dlx stacker-cli <templateId>
 ### With a template ID
 
 ```bash
-bunx stacker-cli xCjNK1
+bunx  @stacker-oss/cli xCjNK1
 ```
 
 Fetches the template, shows you a full plan, asks for confirmation, then runs.
@@ -81,7 +81,7 @@ Fetches the template, shows you a full plan, asks for confirmation, then runs.
 ### Interactive
 
 ```bash
-bunx stacker-cli
+bunx  @stacker-oss/cli
 ```
 
 Prompts you to enter a template ID if you don't pass one.
@@ -101,38 +101,14 @@ Prompts you to enter a template ID if you don't pass one.
 
 ```bash
 # scaffold to a specific folder
-bunx stacker-cli xCjNK1 --dir my-app
+bunx  @stacker-oss/cli xCjNK1 --dir my-app
 
 # skip confirmation (great for CI)
-bunx stacker-cli xCjNK1 --yes
+bunx  @stacker-oss/cli xCjNK1 --yes
 
 # point at a self-hosted Stacker instance
-bunx stacker-cli xCjNK1 --api https://stacker.ranveersoni.me
+bunx  @stacker-oss/cli xCjNK1 --api https://stacker.ranveersoni.me
 ```
-
----
-
-## How it works
-
-```
-stacker.ranveersoni.me/create
-        │
-        │  configure stack → get template ID
-        ▼
-bunx stacker-cli <id>
-        │
-        ├─ 1. fetch manifest from /api/templates/<id>
-        ├─ 2. resolve add-ons supported by the installed TanStack CLI
-        ├─ 3. display a full overview of the plan
-        ├─ 4. confirm (or auto-confirm with --yes)
-        └─ 5. run each step in sequence
-                ├─ scaffold framework
-                ├─ init shadcn/ui + apply tweakcn theme
-                └─ install packages
-```
-
-The manifest is a plain JSON file (`stacker.json`) that gets saved in your project root.
-You can commit it, share it, or re-run it later.
 
 ---
 
@@ -148,16 +124,6 @@ You can commit it, share it, or re-run it later.
 | Laravel | `laravel new` |
 
 ---
-
-## Supported add-ons (via TanStack Start)
-
-When scaffolding a TanStack Start project, the CLI passes add-ons directly to
-`@tanstack/cli create`. Supported add-ons are auto-detected from the installed
-TanStack CLI version so you always get a valid set.
-
-Includes: `tanstack-query`, `form`, `table`, `store`, `db`, `shadcn`, `drizzle`,
-`prisma`, `neon`, `convex`, `clerk`, `workos`, `better-auth`, `trpc`, `orpc`,
-`sentry`, `posthog`, `biome`, `eslint`, `storybook`, `t3env`, and more.
 
 ---
 
