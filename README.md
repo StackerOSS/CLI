@@ -2,19 +2,12 @@
 
 <br />
 
-```
- ███████╗████████╗ █████╗  ██████╗██╗  ██╗███████╗██████╗
- ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗
- ███████╗   ██║   ███████║██║     █████╔╝ █████╗  ██████╔╝
- ╚════██║   ██║   ██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗
- ███████║   ██║   ██║  ██║╚██████╗██║  ██╗███████╗██║  ██║
- ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-```
+<img src="https://stacker.ranveersoni.me/logo.png" alt="Stacker Logo" width="200" />
 
 **Build your stack. Instantly.**
 
-The CLI companion to [Stacker](https://stacker.ranveersoni.me) — scaffold a production-ready project
-in one command from a template you built visually in the browser.
+The CLI companion to [Stacker](https://stacker.ranveersoni.me) scaffold a production-ready project
+in one command from a template.
 
 [![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](#)
 [![Runtime](https://img.shields.io/badge/runtime-bun-orange.svg)](#)
@@ -37,20 +30,9 @@ in the right order — automatically:
 bunx  @stacker-oss/cli xCjNK1
 ```
 
-That one command will:
-
-1. Scaffold your chosen framework (`create-next-app`, `@tanstack/cli create`, `create-vite`, etc.)
-2. Initialize shadcn/ui with your exact style, base color, and component selection
-3. Apply your tweakcn theme
-4. Install TanStack add-ons (Query, Router, Form, Table, Store…)
-5. Install any extra npm packages you selected
-6. Drop a `stacker.json` in the project folder as a reproducible config snapshot
-
 ---
 
 ## Install
-
-No global install needed. Run directly with your package manager:
 
 ```bash
 # bun (recommended)

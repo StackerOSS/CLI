@@ -11,15 +11,19 @@ import type { StackerManifest } from "../lib/types.ts";
 export async function saveCommand(filePath?: string, apiBase?: string) {
 	const resolved = path.resolve(filePath ?? "stacker.json");
 
+	// Read file — definite assignment via early exit on error
 	let raw: string;
 	try {
 		raw = await Bun.file(resolved).text();
 	} catch {
 		log.error(`Cannot read ${pc.cyan(resolved)}`);
-		log.info("Run ${pc.cyan('stacker create')} first, or pass a path: ${pc.cyan('stacker save ./path/to/stacker.json')}");
+		log.info(
+			`Run ${pc.cyan("stacker create")} first, or pass a path: ${pc.cyan("stacker save ./path/to/stacker.json")}`,
+		);
 		process.exit(1);
 	}
 
+	// Parse manifest — definite assignment via early exit on error
 	let manifest: StackerManifest;
 	try {
 		manifest = JSON.parse(raw) as StackerManifest;
@@ -29,8 +33,10 @@ export async function saveCommand(filePath?: string, apiBase?: string) {
 		process.exit(1);
 	}
 
+	// Save to API
 	const s = spinner();
 	s.start(`Saving ${pc.cyan(path.basename(resolved))}…`);
+
 	let id: string;
 	try {
 		id = await saveManifest(manifest, apiBase);
@@ -42,7 +48,10 @@ export async function saveCommand(filePath?: string, apiBase?: string) {
 	}
 
 	// Write ID back into the local file so it's stored
-	const updated = { ...manifest, _templateId: id };
+	const updated: StackerManifest & { _templateId: string } = {
+		...manifest,
+		_templateId: id,
+	};
 	await Bun.write(resolved, JSON.stringify(updated, null, 2));
 
 	log.success(

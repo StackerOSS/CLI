@@ -15,7 +15,7 @@ function section(title: string, lines: string[]) {
 export function helpCommand() {
 	const output = [
 		"",
-		`  ${pc.bgCyan(pc.black(" Stacker "))} ${pc.dim("— Build your stack. Instantly.")}`,
+		`  ${pc.bgCyan(pc.black(" Stacker — Build your stack. Instantly. "))}`,
 		"",
 		section("USAGE", [
 			`  ${pc.cyan(CMD)} ${pc.dim("[command] [options]")}`,

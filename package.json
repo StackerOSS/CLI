@@ -1,6 +1,7 @@
 {
   "name": "@stacker-oss/cli",
   "version": "0.1.1",
+  "author": "Ranveer Soni <ranveersoni.me>",
   "description": "The ultra-fast CLI for Stacker — scaffold production-ready projects in one command",
   "keywords": [
     "cli",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/node": "^25.6.0",
     "publint": "^0.3.18"
   },
   "peerDependencies": {
@@ -43,7 +45,7 @@
     "create-next-app": "^16.2.3",
     "create-vite": "^9.0.4",
     "picocolors": "^1.1.1",
-    "shadcn-ui": "^0.9.5",
+    "shadcn": "latest",
     "tsdown": "^0.21.7",
     "zod": "^4.3.6"
   }

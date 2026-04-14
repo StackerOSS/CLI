@@ -7,7 +7,6 @@ import {
 import {
 	getPackageRunner,
 	getInstallCommand,
-	resolveShadcnCliStyle,
 } from "./pm.ts";
 
 export { discoverSupportedTanstackAddOns };
@@ -19,8 +18,7 @@ export function buildPlan(
 ): PlanStep[] {
 	const runner = getPackageRunner(manifest.project.packageManager);
 	const plan: PlanStep[] = [];
-	const installFlag = manifest.project.install ? "" : " --skip-install";
-	const gitFlag = manifest.project.git ? "" : " --disable-git";
+
 	const requestedAddOns = resolveTanstackCreateAddOns(manifest);
 	const tanstackCreateAddOns =
 		supportedTanstackAddOns && supportedTanstackAddOns.size > 0
@@ -31,33 +29,48 @@ export function buildPlan(
 		case "Next.js":
 			plan.push({
 				title: "Scaffold Next.js (App Router, TypeScript, Tailwind, ESLint)",
-				command: `${runner} create-next-app@latest ${targetDir} --ts --tailwind --app --eslint --yes${installFlag}${gitFlag}`,
+				command: `${runner} create-next-app@latest ${targetDir} --ts --tailwind --app --eslint --yes${manifest.project.install ? "" : " --skip-install"}${manifest.project.git ? "" : " --disable-git"}`,
 			});
 			break;
+
 		case "Vite":
 			plan.push({
 				title: `Scaffold Vite + ${manifest.starter.runtime}`,
-				command: `${runner} create-vite@latest ${targetDir} --template ${manifest.starter.runtime === "Solid" ? "solid-ts" : "react-ts"}${manifest.project.install ? "" : " --no-install"}`,
+				command: `${runner} create-vite@latest ${targetDir} --template ${
+					manifest.starter.runtime === "Solid" ? "solid-ts" : "react-ts"
+				}${manifest.project.install ? "" : " --no-install"}`,
 			});
 			break;
+
 		case "TanStack Start":
 			plan.push({
 				title: "Scaffold TanStack Start",
-				command: `${runner} @tanstack/cli@latest create ${targetDir} --framework ${manifest.starter.runtime.toLowerCase()} --package-manager ${manifest.project.packageManager}${tanstackCreateAddOns.length > 0 ? ` --add-ons ${tanstackCreateAddOns.join(",")}` : ""}${manifest.project.install ? "" : " --no-install"}${manifest.project.git ? "" : " --no-git"} --yes`,
+				command: `${runner} @tanstack/cli@latest create ${targetDir} --framework ${manifest.starter.runtime.toLowerCase()} --package-manager ${manifest.project.packageManager}${
+					tanstackCreateAddOns.length > 0
+						? ` --add-ons ${tanstackCreateAddOns.join(",")}`
+						: ""
+				}${manifest.project.install ? "" : " --no-install"}${
+					manifest.project.git ? "" : " --no-git"
+				} --yes`,
 			});
 			break;
+
 		case "React Router":
 			plan.push({
 				title: "Scaffold React Router (framework mode)",
-				command: `${runner} create-react-router@latest ${targetDir}${manifest.project.install ? "" : " --no-install"} --yes`,
+				command: `${runner} create-react-router@latest ${targetDir}${
+					manifest.project.install ? "" : " --no-install"
+				} --yes`,
 			});
 			break;
+
 		case "Astro":
 			plan.push({
 				title: "Scaffold Astro",
 				command: `${runner} create astro@latest ${targetDir} --yes`,
 			});
 			break;
+
 		case "Laravel":
 			plan.push({
 				title: "Scaffold Laravel",
@@ -67,53 +80,90 @@ export function buildPlan(
 	}
 
 	if (manifest.frontend.uiSystem === "shadcn/ui") {
-		const cliStyle = resolveShadcnCliStyle(manifest.frontend.shadcn?.style);
-		const shadcnFlags = [
-			"--yes",
-			"--defaults",
-			`--style ${cliStyle}`,
-			manifest.frontend.shadcn?.base
-				? `--base ${manifest.frontend.shadcn.base}`
-				: "",
-			manifest.frontend.shadcn?.baseColor
-				? `--base-color ${manifest.frontend.shadcn.baseColor}`
-				: "",
-		]
-			.filter(Boolean)
-			.join(" ");
+		const shadcn = manifest.frontend.shadcn;
 
-		plan.push({
-			title: "Initialize shadcn/ui",
-			command: `${runner} shadcn@latest init ${shadcnFlags}`,
-			cwd: targetDir,
-		});
+		if (shadcn) {
+			const cssPath = "src/styles.css";
 
-		if (manifest.frontend.shadcn?.tweakcnTheme) {
+			const tailwindConfigMap: Record<string, string> = {
+				"TanStack Start": "tailwind.config.ts",
+				"Next.js": "tailwind.config.ts",
+				"Vite": "tailwind.config.ts",
+				"React Router": "tailwind.config.ts",
+				"Astro": "tailwind.config.mjs",
+				"Laravel": "tailwind.config.js",
+			};
+
+			const componentsJson = {
+				$schema: "https://ui.shadcn.com/schema.json",
+				style: shadcn.style ?? "new-york",
+				tailwind: {
+					config: tailwindConfigMap[manifest.starter.framework] ?? "tailwind.config.ts",
+					css: cssPath,
+					baseColor: shadcn.baseColor ?? "zinc",
+					cssVariables: true,
+				},
+				aliases: {
+	components: "src/components",
+	utils: "src/lib/utils",
+	ui: "src/components/ui",
+	lib: "src/lib",
+	hooks: "src/hooks",
+},
+				iconLibrary: shadcn.iconLibrary?.toLowerCase() ?? "lucide",
+			};
+
 			plan.push({
-				title: `Apply tweakcn theme (${manifest.frontend.shadcn.tweakcnTheme})`,
-				command: `${runner} tweakcn@latest add ${manifest.frontend.shadcn.tweakcnTheme}`,
+				title: "Write shadcn/ui components.json",
+				writeFile: {
+					path: "components.json",
+					content: JSON.stringify(componentsJson, null, 2),
+				},
 				cwd: targetDir,
 			});
 		}
 
-		const components = manifest.frontend.shadcn?.components ?? [];
+		plan.push({
+			title: "Initialize shadcn/ui",
+			command: `${runner} shadcn@latest init --yes --defaults`,
+			cwd: targetDir,
+		});
+
+		if (shadcn?.tweakcnTheme) {
+			const theme = shadcn.tweakcnTheme;
+
+			const command = theme.startsWith("http")
+				? `${runner} shadcn@latest add ${theme} --yes`
+				: `${runner} shadcn@latest add https://tweakcn.com/r/themes/${theme}.json --yes`;
+
+			plan.push({
+				title: `Apply tweakcn theme (${theme})`,
+				command,
+				cwd: targetDir,
+			});
+		}
+
+		const components = shadcn?.components ?? [];
 		if (components.length > 0) {
 			plan.push({
-				title: `Add ${components.length} shadcn component(s)`,
-				command: `${runner} shadcn@latest add ${components.join(" ")}`,
+				title: `Adding ${components.length} shadcn component(s)`,
+				command: `${runner} shadcn@latest add ${components.join(" ")} --yes`,
 				cwd: targetDir,
 			});
 		}
 	}
 
 	const packages = manifest.addons?.packages ?? [];
+
 	const tanstackPkgs =
 		manifest.starter.framework === "TanStack Start"
 			? []
 			: manifest.frontend.tanstackAddons
 					.map((id) => TANSTACK_ADDON_PACKAGES[id])
 					.filter((v): v is string => Boolean(v));
+
 	const allPackages = [...new Set([...tanstackPkgs, ...packages])];
+
 	if (allPackages.length > 0) {
 		plan.push({
 			title: `Install npm packages (${allPackages.length})`,
