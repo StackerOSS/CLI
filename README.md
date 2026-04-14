@@ -9,7 +9,7 @@
 The CLI companion to [Stacker](https://stacker.ranveersoni.me) scaffold a production-ready project
 in one command from a template.
 
-[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](#)
+[![Version](https://img.shields.io/badge/version-0.1.2-blue.svg)](#)
 [![Runtime](https://img.shields.io/badge/runtime-bun-orange.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](#)
 
