@@ -16,7 +16,7 @@ cli
 	.option("--api <url>", "Override the Stacker API base URL")
 	.option("-y, --yes", "Skip confirmation prompt")
 	.action(async (templateId: string | undefined, options: { dir?: string; api?: string; yes?: boolean }) => {
-		intro(pc.bgCyan(pc.black(" Stacker ")));
+		intro(pc.bgCyan(pc.black(" Stacker — Build your stack. Instantly. ")));
 		await initCommand(templateId, options.dir, options.api, Boolean(options.yes));
 		outro(pc.green("Done."));
 	});

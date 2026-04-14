@@ -14,6 +14,9 @@
     "verbatimModuleSyntax": true,
     "noEmit": true,
 
+    // Bun + Node built-ins
+    "types": ["bun-types"],
+
     // Best practices
     "strict": true,
     "skipLibCheck": true,

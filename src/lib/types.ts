@@ -1,8 +1,5 @@
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export type PackageManager = "bun" | "pnpm" | "npm" | "yarn";
 
-/** Mirrors the web StackerManifest. Extra fields are ignored by the CLI. */
 export type StackerManifest = {
 	version: 1;
 	project: {
@@ -50,6 +47,8 @@ export type StackerManifest = {
 
 export type PlanStep = {
 	title: string;
-	command: string;
 	cwd?: string;
-};
+} & (
+	| { command: string; writeFile?: never }
+	| { writeFile: { path: string; content: string }; command?: never }
+);
