@@ -1,6 +1,6 @@
 {
   "name": "@stacker-oss/cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Ranveer Soni <ranveersoni.me>",
   "description": "The ultra-fast CLI for Stacker — scaffold production-ready projects in one command",
   "keywords": [
@@ -27,7 +27,9 @@
   },
   "scripts": {
     "start": "bun ./src/index.ts",
+    "prettier": "prettier --write .",
     "build": "tsdown --publint"
+
   },
   "devDependencies": {
     "@types/bun": "latest",

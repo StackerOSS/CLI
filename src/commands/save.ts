@@ -2,7 +2,7 @@ import { log, spinner } from "@clack/prompts";
 import path from "node:path";
 import pc from "picocolors";
 import { saveManifest } from "../lib/api.ts";
-import type { StackerManifest } from "../lib/types.ts";
+import type { StackerManifest } from "../types";
 
 /**
  * Push an existing stacker.json to the server and return a shareable template ID.
