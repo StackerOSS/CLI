@@ -1,4 +1,4 @@
-import type { PackageManager } from "./types.ts";
+import type { PackageManager } from "../types";
 import { PM_RUNNERS, PM_INSTALL } from "./constants.ts";
 
 export function getPackageRunner(pm: PackageManager): string {

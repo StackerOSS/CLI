@@ -1,4 +1,4 @@
-import type { PackageManager } from "./types.ts";
+import type { PackageManager } from "../types";
 
 export const DEFAULT_API_BASE = "https://stacker.ranveersoni.me";
 

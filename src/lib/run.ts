@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs/promises";
 
-import type { PlanStep } from "./types.ts";
+import type { PlanStep } from "../types";
 
 export function formatMs(ms: number): string {
 	if (ms < 1000) return `${ms}ms`;

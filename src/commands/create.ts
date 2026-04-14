@@ -1,5 +1,6 @@
 import {
 	confirm,
+	isCancel,
 	log,
 	multiselect,
 	note,
@@ -10,14 +11,21 @@ import {
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import pc from "picocolors";
+import { z } from "zod";
+import {
+	validateManifest,
+	getZodErrorMessage,
+	ProjectNameSchema,
+	NextJsOptionsSchema,
+	TanStackCliOptionsSchema,
+	FrameworkSchema,
+	RuntimeSchema,
+	PackageManagerSchema,
+} from "../types/schemas.ts";
 import { saveManifest } from "../lib/api.ts";
 import { buildPlan } from "../lib/plan.ts";
 import { formatOverview } from "../lib/format.ts";
-import type { StackerManifest, PackageManager } from "../lib/types.ts";
-
-function sym(v: unknown): boolean {
-	return typeof v === "symbol";
-}
+import type { StackerManifest } from "../types";
 
 export async function createCommand(apiBase?: string) {
 	log.message(pc.dim("Configure your stack interactively. We'll save it and give you a template ID.\n"));
@@ -26,13 +34,23 @@ export async function createCommand(apiBase?: string) {
 	const nameRes = await text({
 		message: "Project name",
 		placeholder: "my-app",
-		validate: (v) => (!(v ?? "").trim() ? "Name is required." : undefined),
+		validate: (v) => {
+			if (!v?.trim()) return "Name is required.";
+			const result = ProjectNameSchema.safeParse(v.trim().toLowerCase());
+			if (!result.success) return result.error.issues[0]?.message;
+			return undefined;
+		},
 	});
-	if (sym(nameRes)) process.exit(0);
-	const name = (nameRes as string).trim();
+	if (isCancel(nameRes)) process.exit(0);
+	const nameResult = ProjectNameSchema.safeParse((nameRes as string).trim().toLowerCase());
+	if (!nameResult.success) {
+		log.error(nameResult.error.issues[0]?.message ?? "Invalid project name");
+		process.exit(1);
+	}
+	const name = nameResult.data;
 
 	// ── Package manager ───────────────────────────────────────────────────
-	const pmRes = await select<PackageManager>({
+	const pmRes = await select({
 		message: "Package manager",
 		options: [
 			{ value: "bun", label: "bun", hint: "recommended" },
@@ -42,11 +60,11 @@ export async function createCommand(apiBase?: string) {
 		],
 		initialValue: "bun",
 	});
-	if (sym(pmRes)) process.exit(0);
-	const packageManager = pmRes as PackageManager;
+	if (isCancel(pmRes)) process.exit(0);
+	const packageManager = PackageManagerSchema.parse(pmRes);
 
 	// ── Framework ─────────────────────────────────────────────────────────
-	const fwRes = await select<string>({
+	const fwRes = await select({
 		message: "Framework",
 		options: [
 			{ value: "TanStack Start", label: "TanStack Start", hint: "SSR · React" },
@@ -57,37 +75,136 @@ export async function createCommand(apiBase?: string) {
 			{ value: "Laravel", label: "Laravel", hint: "PHP · full-stack" },
 		],
 	});
-	if (sym(fwRes)) process.exit(0);
-	const framework = fwRes as string;
+	if (isCancel(fwRes)) process.exit(0);
+	const framework = FrameworkSchema.parse(fwRes);
 
-	// ── Runtime (only for Vite) ───────────────────────────────────────────
+	// ── Next.js options ───────────────────────────────────────────────────
+	let nextjsOptions = undefined;
+	if (framework === "Next.js") {
+		const srcDirRes = await confirm({ message: "Use src/ directory?", initialValue: false });
+		if (isCancel(srcDirRes)) process.exit(0);
+
+		const linterRes = await select({
+			message: "Linter",
+			options: [
+				{ value: "eslint", label: "ESLint", hint: "recommended" },
+				{ value: "biome", label: "Biome", hint: "fast linter + formatter" },
+				{ value: "none", label: "None" },
+			],
+			initialValue: "eslint",
+		});
+		if (isCancel(linterRes)) process.exit(0);
+
+		const bundlerRes = await select({
+			message: "Bundler",
+			options: [
+				{ value: "turbopack", label: "Turbopack", hint: "recommended" },
+				{ value: "webpack", label: "Webpack" },
+			],
+			initialValue: "turbopack",
+		});
+		if (isCancel(bundlerRes)) process.exit(0);
+
+		const compilerRes = await confirm({ message: "Enable React Compiler (Babel)?", initialValue: false });
+		if (isCancel(compilerRes)) process.exit(0);
+
+		const agentsRes = await confirm({ message: "Include AGENTS.md for AI agents?", initialValue: true });
+		if (isCancel(agentsRes)) process.exit(0);
+
+		const aliasRes = await text({
+			message: "Import alias",
+			placeholder: "@/*",
+			initialValue: "@/*",
+		});
+		if (isCancel(aliasRes)) process.exit(0);
+
+		nextjsOptions = NextJsOptionsSchema.parse({
+			srcDir: srcDirRes,
+			importAlias: (aliasRes as string).trim() || "@/*",
+			linter: linterRes,
+			bundler: bundlerRes,
+			reactCompiler: compilerRes,
+			agentsMd: agentsRes,
+		});
+	}
+
+	// ── TanStack CLI options ─────────────────────────────────────────────
+	let tanstackOptions = undefined;
+	if (framework === "TanStack Start") {
+		const routerOnlyRes = await confirm({
+			message: "Router-only mode (no SSR)?",
+			initialValue: false,
+		});
+		if (isCancel(routerOnlyRes)) process.exit(0);
+
+		const toolchainRes = await select({
+			message: "Toolchain",
+			options: [
+				{ value: "eslint", label: "ESLint", hint: "recommended" },
+				{ value: "biome", label: "Biome" },
+				{ value: "rome", label: "Rome" },
+				{ value: "none", label: "None" },
+			],
+			initialValue: "eslint",
+		});
+		if (isCancel(toolchainRes)) process.exit(0);
+
+		const deploymentRes = await select({
+			message: "Deployment target",
+			options: [
+				{ value: "none", label: "None" },
+				{ value: "cloudflare-pages", label: "Cloudflare Pages" },
+				{ value: "cloudflare-workers", label: "Cloudflare Workers" },
+				{ value: "vercel", label: "Vercel" },
+				{ value: "netlify", label: "Netlify" },
+				{ value: "deno-deploy", label: "Deno Deploy" },
+			],
+			initialValue: "none",
+		});
+		if (isCancel(deploymentRes)) process.exit(0);
+
+		const examplesRes = await confirm({
+			message: "Include example pages?",
+			initialValue: true,
+		});
+		if (isCancel(examplesRes)) process.exit(0);
+
+		tanstackOptions = TanStackCliOptionsSchema.parse({
+			routerOnly: routerOnlyRes,
+			toolchain: toolchainRes,
+			deployment: deploymentRes,
+			examples: examplesRes,
+		});
+	}
+
+	// ── Runtime (Vite, TanStack Start) ───────────────────────────────────
 	let runtime = "React";
-	if (framework === "Vite") {
-		const rtRes = await select<string>({
+	if (framework === "Vite" || framework === "TanStack Start") {
+		const rtRes = await select({
 			message: "Runtime",
 			options: [
 				{ value: "React", label: "React" },
 				{ value: "Solid", label: "Solid" },
 			],
 		});
-		if (sym(rtRes)) process.exit(0);
-		runtime = rtRes as string;
+		if (isCancel(rtRes)) process.exit(0);
+		runtime = RuntimeSchema.parse(rtRes);
 	}
 
 	// ── UI system ─────────────────────────────────────────────────────────
-	const uiRes = await select<string>({
+	const uiRes = await select({
 		message: "UI system",
 		options: [
 			{ value: "shadcn/ui", label: "shadcn/ui", hint: "Tailwind + Radix" },
 			{ value: "None", label: "None / custom" },
 		],
 	});
-	if (sym(uiRes)) process.exit(0);
-	const uiSystem = uiRes as string;
+	if (isCancel(uiRes)) process.exit(0);
+	const uiSystem = uiRes === "None" ? "" : uiRes;
 
-	let shadcnConfig: StackerManifest["frontend"]["shadcn"] = null;
+	let shadcnConfig = null;
 	if (uiSystem === "shadcn/ui") {
-		const styleRes = await select<string>({
+		const styleRes = await select({
 			message: "shadcn/ui style",
 			options: [
 				{ value: "new-york", label: "New York", hint: "recommended" },
@@ -95,9 +212,9 @@ export async function createCommand(apiBase?: string) {
 			],
 			initialValue: "new-york",
 		});
-		if (sym(styleRes)) process.exit(0);
+		if (isCancel(styleRes)) process.exit(0);
 
-		const colorRes = await select<string>({
+		const colorRes = await select({
 			message: "Base color",
 			options: [
 				{ value: "zinc", label: "Zinc" },
@@ -115,21 +232,22 @@ export async function createCommand(apiBase?: string) {
 			],
 			initialValue: "zinc",
 		});
-		if (sym(colorRes)) process.exit(0);
+		if (isCancel(colorRes)) process.exit(0);
 
 		shadcnConfig = {
-			base: "radix",
-			style: styleRes as string,
-			baseColor: colorRes as string,
+			base: "radix" as const,
+			style: styleRes,
+			baseColor: colorRes,
 			components: [],
 		};
 	}
 
 	// ── TanStack add-ons ──────────────────────────────────────────────────
-	const tanstackRes = await multiselect<string>({
+	const tanstackRes = await multiselect({
 		message: "TanStack add-ons",
 		options: [
 			{ value: "query", label: "TanStack Query" },
+			{ value: "router", label: "TanStack Router" },
 			{ value: "form", label: "TanStack Form" },
 			{ value: "table", label: "TanStack Table" },
 			{ value: "store", label: "TanStack Store" },
@@ -137,11 +255,11 @@ export async function createCommand(apiBase?: string) {
 		],
 		required: false,
 	});
-	if (sym(tanstackRes)) process.exit(0);
+	if (isCancel(tanstackRes)) process.exit(0);
 	const tanstackPackages = tanstackRes as string[];
 
 	// ── Database ──────────────────────────────────────────────────────────
-	const dbRes = await select<string>({
+	const dbRes = await select({
 		message: "Database",
 		options: [
 			{ value: "None", label: "None" },
@@ -151,27 +269,26 @@ export async function createCommand(apiBase?: string) {
 		],
 		initialValue: "None",
 	});
-	if (sym(dbRes)) process.exit(0);
-	const database = dbRes as string;
+	if (isCancel(dbRes)) process.exit(0);
+	const database = dbRes === "None" ? undefined : dbRes;
 
 	// ── ORM ───────────────────────────────────────────────────────────────
-	let orm = "None";
-	if (database !== "None" && database !== "Convex") {
-		const ormRes = await select<string>({
+	let orm = undefined;
+	if (database && database !== "Convex") {
+		const ormRes = await select({
 			message: "ORM",
 			options: [
-				{ value: "None", label: "None" },
 				{ value: "Drizzle", label: "Drizzle ORM", hint: "lightweight + typesafe" },
 				{ value: "Prisma", label: "Prisma", hint: "full-featured ORM" },
 			],
 			initialValue: "Drizzle",
 		});
-		if (sym(ormRes)) process.exit(0);
-		orm = ormRes as string;
+		if (isCancel(ormRes)) process.exit(0);
+		orm = ormRes;
 	}
 
 	// ── Auth ──────────────────────────────────────────────────────────────
-	const authRes = await select<string>({
+	const authRes = await select({
 		message: "Auth",
 		options: [
 			{ value: "None", label: "None" },
@@ -181,11 +298,11 @@ export async function createCommand(apiBase?: string) {
 		],
 		initialValue: "None",
 	});
-	if (sym(authRes)) process.exit(0);
-	const auth = authRes as string;
+	if (isCancel(authRes)) process.exit(0);
+	const auth = authRes === "None" ? undefined : authRes;
 
 	// ── API Layer ─────────────────────────────────────────────────────────
-	const apiLayerRes = await select<string>({
+	const apiLayerRes = await select({
 		message: "API layer",
 		options: [
 			{ value: "None", label: "None" },
@@ -195,45 +312,58 @@ export async function createCommand(apiBase?: string) {
 		],
 		initialValue: "None",
 	});
-	if (sym(apiLayerRes)) process.exit(0);
-	const apiLayer = apiLayerRes as string;
+	if (isCancel(apiLayerRes)) process.exit(0);
+	const apiLayer = apiLayerRes === "None" ? undefined : apiLayerRes;
 
 	// ── Git & install ─────────────────────────────────────────────────────
 	const gitRes = await confirm({ message: "Initialize git?", initialValue: true });
-	if (sym(gitRes)) process.exit(0);
+	if (isCancel(gitRes)) process.exit(0);
 
 	const installRes = await confirm({ message: "Install dependencies?", initialValue: true });
-	if (sym(installRes)) process.exit(0);
+	if (isCancel(installRes)) process.exit(0);
 
-	// ── Build manifest ────────────────────────────────────────────────────
-	const manifest: StackerManifest = {
-		version: 1,
+	// ── Build manifest with Zod validation ─────────────────────────────────
+	const rawManifest = {
+		version: 1 as const,
 		project: {
 			name,
 			packageManager,
-			git: gitRes as boolean,
-			install: installRes as boolean,
+			git: gitRes,
+			install: installRes,
 		},
-		starter: { framework, runtime, id: "" },
+		starter: {
+			framework,
+			runtime,
+			id: "",
+			...(nextjsOptions && { nextjs: nextjsOptions }),
+			...(tanstackOptions && { tanstack: tanstackOptions }),
+		},
 		frontend: {
-			uiSystem: uiSystem === "None" ? "" : uiSystem,
+			uiSystem,
 			shadcn: shadcnConfig,
 			tanstackAddons: tanstackPackages,
 		},
 		backend: {
-			database: database === "None" ? undefined : database,
-			orm: orm === "None" ? undefined : orm,
-			auth: auth === "None" ? undefined : auth,
-			apiLayer: apiLayer === "None" ? undefined : apiLayer,
+			database,
+			orm,
+			auth,
+			apiLayer,
 		},
 	};
+
+	const manifestResult = validateManifest(rawManifest);
+	if (!manifestResult) {
+		log.error("Failed to build manifest. Please try again.");
+		process.exit(1);
+	}
+	const manifest = manifestResult;
 
 	// ── Confirm & save ────────────────────────────────────────────────────
 	const steps = buildPlan(manifest, name, null);
 	note(formatOverview(manifest, name, steps, null), pc.inverse(" Your stack "));
 
 	const okRes = await confirm({ message: "Save this template and get an ID?", initialValue: true });
-	if (!okRes || sym(okRes)) {
+	if (isCancel(okRes) || !okRes) {
 		log.warn("Cancelled — nothing was saved.");
 		process.exit(0);
 	}

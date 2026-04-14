@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import type { StackerManifest } from "./types.ts";
+import type { StackerManifest } from "../types";
 import { TANSTACK_ADDON_PACKAGES } from "./constants.ts";
 import { getPackageRunner } from "./pm.ts";
 

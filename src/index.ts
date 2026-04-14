@@ -6,6 +6,8 @@ import { createCommand } from "./commands/create.ts";
 import { saveCommand } from "./commands/save.ts";
 import { openCommand } from "./commands/open.ts";
 import { helpCommand } from "./commands/help.ts";
+import { validateCommand } from "./commands/validate.ts";
+import { doctorCommand } from "./commands/doctor.ts";
 
 const cli = cac("stacker");
 
@@ -29,6 +31,21 @@ cli
 		intro(pc.bgCyan(pc.black(" Stacker — Create ")));
 		await createCommand(options.api);
 		outro(pc.green("Done."));
+	});
+
+// ── stacker validate [file] ───────────────────────────────────────────────────
+cli
+	.command("validate [file]", "Validate a stacker.json manifest")
+	.option("-f, --file <path>", "Path to the manifest file (default: stacker.json in cwd)")
+	.action(async (file: string | undefined, options: { file?: string }) => {
+		await validateCommand({ file: options.file ?? file });
+	});
+
+// ── stacker doctor ────────────────────────────────────────────────────────────
+cli
+	.command("doctor", "Check system dependencies and environment")
+	.action(async () => {
+		await doctorCommand();
 	});
 
 // ── stacker save [file] ───────────────────────────────────────────────────────

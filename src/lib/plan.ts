@@ -1,4 +1,4 @@
-import type { StackerManifest, PlanStep } from "./types.ts";
+import type { StackerManifest, PlanStep } from "../types";
 import {
 	resolveTanstackCreateAddOns,
 	discoverSupportedTanstackAddOns,
@@ -26,12 +26,45 @@ export function buildPlan(
 			: requestedAddOns;
 
 	switch (manifest.starter.framework) {
-		case "Next.js":
+		case "Next.js": {
+			const nx = manifest.starter.nextjs;
+			const srcDir = nx?.srcDir ? "--src-dir" : "";
+			const importAlias = nx?.importAlias && nx.importAlias !== "@/*" ? `--import-alias ${nx.importAlias}` : "";
+			const linter = nx?.linter === "none" ? "--no-linter" : nx?.linter === "biome" ? "--biome" : "--eslint";
+			const bundler = nx?.bundler === "webpack" ? "--webpack" : "--turbopack";
+			const reactCompiler = nx?.reactCompiler ? "--react-compiler" : "";
+			const agentsMd = nx?.agentsMd === false ? "--no-agents-md" : "";
+
+			const titleParts = ["App Router", "TypeScript", "Tailwind"];
+			if (nx?.linter === "biome") titleParts.push("Biome");
+			else if (nx?.linter !== "none") titleParts.push("ESLint");
+			if (nx?.srcDir) titleParts.push("src/");
+			if (nx?.reactCompiler) titleParts.push("React Compiler");
+
 			plan.push({
-				title: "Scaffold Next.js (App Router, TypeScript, Tailwind, ESLint)",
-				command: `${runner} create-next-app@latest ${targetDir} --ts --tailwind --app --eslint --yes${manifest.project.install ? "" : " --skip-install"}${manifest.project.git ? "" : " --disable-git"}`,
+				title: `Scaffold Next.js (${titleParts.join(", ")})`,
+				command: [
+					runner,
+					"create-next-app@latest",
+					targetDir,
+					"--ts",
+					"--tailwind",
+					"--app",
+					linter,
+					bundler,
+					srcDir,
+					importAlias,
+					reactCompiler,
+					agentsMd,
+					"--yes",
+					manifest.project.install ? "" : "--skip-install",
+					manifest.project.git ? "" : "--disable-git",
+				]
+					.filter(Boolean)
+					.join(" "),
 			});
 			break;
+		}
 
 		case "Vite":
 			plan.push({
@@ -42,18 +75,44 @@ export function buildPlan(
 			});
 			break;
 
-		case "TanStack Start":
+		case "TanStack Start": {
+			const ts = manifest.starter.tanstack;
+			const routerOnly = ts?.routerOnly ? "--router-only" : "";
+			const toolchain = ts?.toolchain && ts.toolchain !== "none" ? `--toolchain ${ts.toolchain}` : "";
+			const deployment = ts?.deployment && ts.deployment !== "none" ? `--deployment ${ts.deployment}` : "";
+			const examples = ts?.examples === false ? "--no-examples" : "";
+			const addOns = tanstackCreateAddOns.length > 0 ? `--add-ons ${tanstackCreateAddOns.join(",")}` : "";
+
+			const titleParts = ["TanStack Start", manifest.starter.runtime];
+			if (ts?.routerOnly) titleParts.push("Router-only");
+			if (ts?.toolchain && ts.toolchain !== "none") titleParts.push(ts.toolchain);
+			if (ts?.deployment && ts.deployment !== "none") titleParts.push(ts.deployment);
+
 			plan.push({
-				title: "Scaffold TanStack Start",
-				command: `${runner} @tanstack/cli@latest create ${targetDir} --framework ${manifest.starter.runtime.toLowerCase()} --package-manager ${manifest.project.packageManager}${
-					tanstackCreateAddOns.length > 0
-						? ` --add-ons ${tanstackCreateAddOns.join(",")}`
-						: ""
-				}${manifest.project.install ? "" : " --no-install"}${
-					manifest.project.git ? "" : " --no-git"
-				} --yes`,
+				title: `Scaffold ${titleParts.join(", ")}`,
+				command: [
+					runner,
+					"@tanstack/cli@latest",
+					"create",
+					targetDir,
+					"--framework",
+					manifest.starter.runtime.toLowerCase(),
+					"--package-manager",
+					manifest.project.packageManager,
+					addOns,
+					toolchain,
+					deployment,
+					routerOnly,
+					examples,
+					"--yes",
+					manifest.project.install ? "" : "--no-install",
+					manifest.project.git ? "" : "--no-git",
+				]
+					.filter(Boolean)
+					.join(" "),
 			});
 			break;
+		}
 
 		case "React Router":
 			plan.push({
@@ -83,7 +142,12 @@ export function buildPlan(
 		const shadcn = manifest.frontend.shadcn;
 
 		if (shadcn) {
-			const cssPath = "src/styles.css";
+			const cssPathMap: Record<string, string> = {
+				"Next.js": manifest.starter.nextjs?.srcDir ? "src/app/globals.css" : "app/globals.css",
+				"React Router": "src/app/globals.css",
+				"TanStack Start": "src/app/globals.css",
+			};
+			const cssPath = cssPathMap[manifest.starter.framework] ?? "src/styles.css";
 
 			const tailwindConfigMap: Record<string, string> = {
 				"TanStack Start": "tailwind.config.ts",

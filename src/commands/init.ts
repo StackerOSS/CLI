@@ -7,7 +7,7 @@ import { fetchManifest, normalizeApiBase } from "../lib/api.ts";
 import { buildPlan, discoverSupportedTanstackAddOns } from "../lib/plan.ts";
 import { formatOverview } from "../lib/format.ts";
 import { runStep, formatMs } from "../lib/run.ts";
-import type { StackerManifest, PlanStep } from "../lib/types.ts";
+import type { StackerManifest, PlanStep } from "../types";
 
 export async function initCommand(
 	initialTemplateId?: string,

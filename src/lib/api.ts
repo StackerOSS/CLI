@@ -1,4 +1,4 @@
-import type { StackerManifest } from "./types.ts";
+import type { StackerManifest } from "../types";
 import { DEFAULT_API_BASE } from "./constants.ts";
 
 export function normalizeApiBase(apiBase?: string): string {
